@@ -10,4 +10,4 @@ for ip in range(1,10):
     else:
         unreachablehosts.append(host)
 
-print "Reachable hosts are: " +  reachablehosts
+print reachablehosts
