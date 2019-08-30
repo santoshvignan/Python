@@ -10,4 +10,5 @@ for ip in range(1,10):
     else:
         unreachablehosts.append(host)
 
+print "hello Baby"
 print reachablehosts
