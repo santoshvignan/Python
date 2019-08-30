@@ -11,3 +11,5 @@ for ip in range(1,110):
         unreachablehosts.append(host)
 
 print reachablehosts
+
+print unreachablehosts
