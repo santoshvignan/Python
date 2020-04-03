@@ -21,7 +21,7 @@ class Verify(object):
                 self.wordguess()
 
             #The guessed letter is looked in the random word chosen from the list. After it is found, we find the index of
-            #that guessed letter in the chosen wor and replace that letter at the same position in word.
+            #that guessed letter in the chosen word and replace that letter at the same position in word.
             if self.guess_letter in self.chosen_word:
                 print (self.guess_letter + " is present in the word")
                 self.previous_guess = self.guess_letter
