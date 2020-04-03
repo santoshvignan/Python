@@ -19,9 +19,9 @@ class Verify(object):
             if self.guess_letter == self.previous_guess:
                 print (self.guess_letter + " has already been chosen. Choose a different letter")
                 self.wordguess()
-            
-            #The guessed letter is looked in the random word chosen from the list. After it is found, we find the index of 
-            #that guessed letter in the chosen word and replace that letter at the same position in word.
+
+            #The guessed letter is looked in the random word chosen from the list. After it is found, we find the index of
+            #that guessed letter in the chosen wor and replace that letter at the same position in word.
             if self.guess_letter in self.chosen_word:
                 print (self.guess_letter + " is present in the word")
                 self.previous_guess = self.guess_letter
@@ -97,4 +97,3 @@ if __name__ == '__main__':
         user_guess = input("What is your guess: ")
     guessed_letter = Verify(user_guess.upper(),random_word,Word,chances,previous_guess)
     guessed_letter.verifyword()
-
