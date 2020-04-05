@@ -44,7 +44,7 @@ class rangusky():
 			if '2.1.1.3' in route and '1.1.250.3' in route and 'lte' in route:
 				omp_lte = 1
 		if omp_pub_int != 1:
-			print ("************Bo has gone into problem state************ \n")
+			print ("************Box has gone into problem state************ \n")
 			print (omp_route_output)
 			ve1k_rtr2.send_command("clear omp all")
 		elif omp_pub_int == 1:
