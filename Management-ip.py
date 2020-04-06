@@ -12,4 +12,4 @@ for ip in range(1,110):
 
 print reachablehosts
 
-print unreachablehosts
+#print unreachablehosts
