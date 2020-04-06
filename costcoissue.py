@@ -43,6 +43,8 @@ class rangusky():
 				omp_pub_int = 1
 			if '2.1.1.3' in route and '1.1.250.3' in route and 'lte' in route:
 				omp_lte = 1
+		print ("Checking if box has gone into a problem state....... \n")
+		time.sleep(3)
 		if omp_pub_int != 1:
 			print ("************Box has gone into problem state************ \n")
 			print (omp_route_output)
