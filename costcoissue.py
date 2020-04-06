@@ -34,7 +34,7 @@ class rangusky():
 					lte = lte+1
 				if 'vsmart' in row and 'public-internet' in row and 'up' in row:
 					pub_int = pub_int + 1
-			time.sleep(5)
+			time.sleep(6)
 		omp_lte = 0
 		omp_pub_int = 0
 		omp_route_output = ve1k_rtr2.send_command("show omp routes vpn 60 70.1.1.0/24 | tab")
@@ -54,7 +54,7 @@ class rangusky():
 	def check_control_connection_bad():
 		print ("************Checking control connections after pub-int is down************ \n")
 		pub_int = 2
-		
+
 		while pub_int != 0:
 			ctrl_conn = ve1k_rtr2.send_command("show control connections")
 			print (ctrl_conn)
@@ -66,8 +66,8 @@ class rangusky():
 					temp_list.append(row)
 			#print (temp_list)
 			if len(temp_list) == 2:
-				pub_int = 0	
-			
+				pub_int = 0
+
 			time.sleep(5)
 		omp_lte = 0
 		omp_pub_int = 0
@@ -95,7 +95,7 @@ class rangusky():
 		ve1k_rtr1.send_command("config ; vpn 0 ; interface ge0/1.11 ; shut ; commit and-quit")
 		#print (ve1k_rtr1.find_prompt())
 		#time.sleep(60)
-		rangusky.check_control_connection_bad()	
+		rangusky.check_control_connection_bad()
 
 
 if __name__ == '__main__':
@@ -111,14 +111,11 @@ if __name__ == '__main__':
 			lte = lte + 1
 		elif 'vsmart' in row and 'public-internet' in row and 'up' in row:
 			pub_int = pub_int + 1
-	
+
 	print ("vSmart Control connections over lte circuit = ", lte)
 	print ("vSmart Control connections over public-internet circuit = ", pub_int)
 
 	if pub_int == 0:
 		rangusky.unshut_interface_rtr1()
 	if pub_int == 2:
-		rangusky.shut_interface_rtr1()	
-
-
-
+		rangusky.shut_interface_rtr1()
