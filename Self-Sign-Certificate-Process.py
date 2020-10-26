@@ -3,9 +3,7 @@ import subprocess
 import time
 
 parser = argparse.ArgumentParser(description="Generate self signed-certificate",
-epilog='Example: python3 Self-Sign-Certificate-Process.py --org vignan5'
-       '--dir "/Users/vignan/Documents/testbed/certs/" '
-       '--subject "/C=US/ST=NC/L=RTP/O=vignan5/OU=vignan5"')
+epilog='Example: python3 Self-Sign-Certificate-Process.py --org vignan5 --dir "/Users/vignan/Documents/testbed/certs/ --subject "/C=US/ST=NC/L=RTP/O=vignan5/OU=vignan5"')
 
 parser.add_argument('--org',help = "Enter the organization name",required=True)
 parser.add_argument('--dir',help="Enter the directory where you want to store the certs",required=True)
