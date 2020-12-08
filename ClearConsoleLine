@@ -1,0 +1,35 @@
+import telnetlib
+import time
+
+HOST="172.18.52.22"
+USERNAME="vignan"
+PASSWORD="MANSANvig2908"
+
+clear_line = input("What line do you want to clear? ")
+#print (clear_line)
+
+tn = telnetlib.Telnet(HOST)
+tn.read_until(b"Username: ")
+tn.write(USERNAME.encode('ascii') + b'\n')
+
+tn.read_until(b'Password: ')
+tn.write(PASSWORD.encode('ascii') + b'\n')
+
+if clear_line == "ALL" or clear_line == "all" or clear_line == "All":
+    for i in range(3,19):
+        command = "clear line " + str(i)
+        #print (command)
+        tn.write(command.encode('ascii') + b'\n')
+        time.sleep(1)
+        tn.write(b'\n')
+
+    tn.write("exit".encode('ascii') + b'\n')
+
+else:
+    command = "clear line " + clear_line
+    #print (command)
+    tn.write(command.encode('ascii') + b'\n')
+    time.sleep(1)
+    tn.write(b"\n")
+    tn.write("exit".encode('ascii') + b'\n')
+
