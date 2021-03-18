@@ -1,0 +1,148 @@
+import requests
+import os
+import sys
+import json
+import time
+import urllib3
+import argparse
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+class Vmanage(object):
+    def __init__(self,vmanage_host,username,password,upg_to_sw):
+        self.vmanage_host = vmanage_host
+        self.username = username
+        self.password = password
+        self.upg_to_sw = upg_to_sw
+
+    def login_to_vmanage(self):
+        
+        login_url = "https://%s:8443/" %self.vmanage_host
+        login_action = "j_security_check"
+        login_data ={'j_username':self.username, 'j_password':self.password}
+
+        login_to_vmanage = login_url + login_action
+
+        vmanage = requests.session()
+        login = vmanage.post(url=login_to_vmanage,data=login_data,verify=False)
+
+        #print (login.status_code)
+        #print (login.json())
+
+        if login.status_code == 200:
+
+            cookies= login.headers["Set-Cookie"]
+            print (cookies.split(";")[0])
+            jsessionid = cookies.split(";")[0]
+
+            headers = {'Cookie':jsessionid}
+            vmanage_cookie_url = login_url + "dataservice/client/token"
+            print (vmanage_cookie_url)
+
+            get_vmanage_cookie = requests.get(vmanage_cookie_url,headers=headers,verify=False)
+            token = get_vmanage_cookie.text
+            print (token)
+
+            list_inst_sw_url = login_url + "dataservice/device/action/install/devices/vmanage"
+            #print(list_inst_sw_url)
+            list_inst_sw = requests.get(list_inst_sw_url, headers=headers, verify=False)
+            list_inst_sw_data = list_inst_sw.json()
+
+            curr_ver = list_inst_sw_data["data"][0]['current-partition']
+            avail_ver = list_inst_sw_data["data"][0]['availableVersions']
+            if curr_ver == '20.3.3':
+                print("The device is already on the expected version of the code")
+                sys.exit()
+            elif '20.3.3' in avail_ver:
+                print ("Software is already installed on the box..Proceeding with Activation of the software")
+                self.Software_Activation(login_url,jsessionid,token)
+            else:
+                print ("Software is not present on the box..Starting Install")
+                self.Software_Upgrade(login_url,jsessionid,token)
+        
+        else:
+            print ("Connection has been unsuccessful")
+    
+    def Software_Upgrade(self,login_url,jsessionid,token):
+        
+        sw_repo_url = login_url + "dataservice/device/action/software"
+        print (sw_repo_url)
+        headers = {'Cookie':jsessionid}
+        get_sw_repository_data = requests.get(sw_repo_url,headers=headers,verify=False)
+
+        #print (get_sw_repository_data.json())
+        sw_repo_data = get_sw_repository_data.json()
+        sw_is_available = False
+        for i in range(0,len(sw_repo_data["data"])):
+            if self.upg_to_sw in sw_repo_data["data"][i]["versionName"]:
+                #print (sw_repo_data["data"][i]["availableFiles"])
+                sw_index = i
+                sw_is_available = True
+        if sw_is_available == False:
+            print ("Required Software is not available..Please upload the required software now")
+            sys.exit()
+            #os.system("mkdir /home/vignan/%s"%self.upg_to_sw)
+            #os.chdir("/home/vignan/%s"%self.upg_to_sw)
+            #os.system("wget ftp://10.239.136.11/builds/bamboo/20.3R/69/viptela-20.3.2.0.04-mips64.tar.gz --ftp-user=bamboo --ftp-password=V1ptela0212")
+            #os.system("wget ftp://10.239.136.11/builds/bamboo/20.3R/69/viptela-20.3.2.0.04-x86_64.tar.gz --ftp-user=bamboo --ftp-password=V1ptela0212")
+            #os.system("wget ftp://10.239.136.11/builds/bamboo/20.3R/69/vmanage-20.3.2.0.04-x86_64.tar.gz --ftp-user=bamboo --ftp-password=V1ptela0212")
+
+        #UPLOAD SOFTWARE to vManage:
+        
+        #INSTALL THE SOFTWARE ON THE VMANAGE
+        
+        sw_install_url = login_url+"dataservice/device/action/install"
+        print (sw_install_url)
+        post_header = {'Cookie':jsessionid,'X-XSRF-TOKEN': token}
+        sw_ins_device_data_str = """{"action":"install","input":{"vEdgeVPN":0,"vSmartVPN":0,"data":[{"family":"vmanage","version":"20.3.3"}],"versionType":"vmanage","reboot":false,"sync":true},"devices":[{"deviceIP":"5.1.1.1","deviceId":"6b1affd0-a61a-4a7b-8c55-36f443cae839"}],"deviceType":"vmanage"}"""
+        sw_ins_device_data = json.loads(sw_ins_device_data_str)
+        sw_install = requests.post(sw_install_url,json=sw_ins_device_data,headers=post_header,verify=False)
+        print (sw_install.status_code)
+        #time.sleep(10)
+        if sw_install.status_code == 200:
+            self.Monitor_tasks(login_url,jsessionid,token)
+
+    def Monitor_tasks(self,login_url,jsessionid,token):
+        headers = {'Cookie':jsessionid}
+        sw_install_status = False
+        active_tasks_url = login_url + "dataservice/device/action/status/tasks/activeCount"
+        get_active_tasks_in_progress = requests.get(active_tasks_url,headers=headers,verify=False)
+        print (get_active_tasks_in_progress.json())
+        if get_active_tasks_in_progress.json()['data']['activeTaskCount'] > 0:
+            tasks_url = login_url + "dataservice/device/action/status/tasks"
+            get_tasks_in_progress = requests.get(tasks_url, headers=headers,verify=False)
+            pid = get_tasks_in_progress.json()['runningTasks'][0]['processId']
+            #pid = get_tasks_in_progress.json()
+            print (pid)
+        mon_sw_task_url = login_url + "dataservice/device/action/status/" + pid
+        print (mon_sw_task_url)
+        while sw_install_status == False:
+            mon_sw_task = requests.get(mon_sw_task_url,headers=headers,verify=False)
+            #print (mon_sw_task.json())
+            sw_ins_task_status = mon_sw_task.json()
+            print (sw_ins_task_status['data'][0]['status'])
+            if sw_ins_task_status['data'][0]['status'] == 'Success':
+                sw_install_status = True
+                print ("Software has been successfully installed")
+                self.Software_Activation(login_url,jsessionid,token)
+            elif sw_ins_task_status['data'][0]['status'] == "Failure":
+                print ("Software Installation has Failed")
+                sys.exit()
+            time.sleep(10)
+
+    def Software_Activation(self,login_url,jsessionid,token):
+        headers={'Cookie':jsessionid}
+        post_header = {'Cookie':jsessionid,'X-XSRF-TOKEN': token}
+        sw_act_url = login_url + "dataservice/device/action/changepartition"
+        sw_act_device_data_str = """{"action":"changepartition","devices":[{"version":"20.3.3","deviceIP":"5.1.1.1","deviceId":"6b1affd0-a61a-4a7b-8c55-36f443cae839"}],"deviceType":"controller"}"""
+        sw_act_device_data = json.loads(sw_act_device_data_str)
+        sw_activate = requests.post(sw_act_url,json=sw_act_device_data,headers=post_header,verify=False)
+        print (sw_activate.status_code)
+
+if __name__ == '__main__':
+    vmanage_host = "29.29.29.61"
+    username = "admin"
+    password = "MANSANvig2908"
+    upg_to_sw = "20.3.3"
+    task = Vmanage(vmanage_host,username,password,upg_to_sw)
+    login = task.login_to_vmanage()
