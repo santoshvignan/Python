@@ -35,7 +35,7 @@ class Vmanage(object):
         #print (login.json())
 
         if login.status_code == 200:
-            print ("Successflly logged into vManage..Now, let's get the Cookie")
+            print ("Successfully logged into vManage..Now, let's get the Cookie")
             cookies = login.headers["Set-Cookie"]
             print ("First Cookie: " + cookies.split(";")[0])
             jsessionid = cookies.split(";")[0]
