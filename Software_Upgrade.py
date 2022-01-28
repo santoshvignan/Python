@@ -53,10 +53,10 @@ class Vmanage(object):
             print ("Connection has been unsuccessful")
 
     def Devices_to_Upgrade(self,login_url,jsessionid,token):
-        headers = {'Cookie': jsessionid}
 
+        headers = {'Cookie': jsessionid}
         list_inst_sw_url_vmanage = login_url + "dataservice/device/action/install/devices/vmanage"
-        # print(list_inst_sw_url_vmanage)
+        #print(list_inst_sw_url_vmanage)
         list_inst_sw_vmanage = requests.get(list_inst_sw_url_vmanage, headers=headers, verify=False)
         list_inst_sw_data_vmanage = list_inst_sw_vmanage.json()
 
@@ -69,9 +69,10 @@ class Vmanage(object):
         #print (list_inst_sw_url_controllers)
         list_inst_sw_controllers = requests.get(list_inst_sw_url_controllers,headers=headers,verify=False)
         list_inst_sw_data_controllers = list_inst_sw_controllers.json()
-        print (list_inst_sw_data_controllers)
+        #print (list_inst_sw_data_controllers)
         num_of_vsmarts = 0
         num_of_vbonds = 0
+
         for i in range(0, len(list_inst_sw_data_controllers["data"])):
             if list_inst_sw_data_controllers["data"][i]["personality"] == "vsmart":
                 num_of_vsmarts = num_of_vsmarts + 1
@@ -81,6 +82,7 @@ class Vmanage(object):
         print ("Number of vBonds present in the overlay: %s" %str(num_of_vbonds))
         vsmarts = []
         vbonds = []
+
         for i in range(0,len(list_inst_sw_data_controllers["data"])):
             if list_inst_sw_data_controllers["data"][i]["personality"] == "vsmart":
                 vsmarts.append(list_inst_sw_data_controllers["data"][i])
@@ -88,14 +90,68 @@ class Vmanage(object):
                 vbonds.append(list_inst_sw_data_controllers["data"][i])
         print ("vSmart data: %s" %vsmarts)
         print ("vBond data: %s" %vbonds)
+
         vmanage_upg_flag = 0
+
         if curr_ver_vmanage == self.upg_to_sw:
             vmanage_upg_flag = 1
-            print("vManage is already on the expected version of the code. Let us check the controllers")
-            vsmart_upg_flag = 0
-            vbond_upg_flag = 0
+            print("vManage is already on the expected version of the code. Let us check the controllers...")
 
+        else:
+            if self.upg_to_sw in avail_ver_vmanage:
+                print("Software is already installed on the vManage..Proceeding with Activation of the software")
+                device_det_url = login_url + "/dataservice"
+                get_device_det = requests.get(device_det_url,headers=headers,verify=False)
+                print (device_det)
+                device_det = get_device_det.json()
+
+                sw_activate_task_started = self.Software_Activation(login_url, jsessionid, token)
+                if sw_activate_task_started == True:
+                    sw_activate_task_completed = self.vManage_SW_Activation_Mon(login_url, jsessionid, token)
+                    if sw_activate_task_completed == True:
+                        print ("vManage has been upgraded to %s version of the code. Let's move on to the controllers" % self.upg_to_sw)
+                        vmanage_upg_flag = 1
+
+            else:
+                print("Software is not present on the box..Starting Install")
+                sw_upg_task_started = self.Software_Upgrade(login_url, jsessionid, token)
+                if sw_upg_task_started == True:
+                    sw_upg_task_completed = self.SW_INSTALL_MONITOR(login_url, jsessionid, token)
+                    if sw_upg_task_completed == True:
+                        sw_activate_task_started = self.Software_Activation(login_url, jsessionid, token)
+                        if sw_activate_task_started == True:
+                            sw_activate_task_completed = self.vManage_SW_Activation_Mon(login_url, jsessionid, token)
+                            if sw_activate_task_completed == True:
+                                print(
+                                    "vManage has been upgraded to %s version of the code. Let's move on to the controllers" % self.upg_to_sw)
+                                vmanage_upg_flag = 1
+
+        if vmanage_upg_flag ==1:
+            print ("Working on the vBonds now.....")
+            vbond_upg_flag = 0
+            #all_vbond_cur_ver_flag = 0
+            for vbond in vbonds:
+                if vbond['current-partition'] == self.upg_to_sw:
+                    print('%s is already on the expected version of the code' % vbond['host-name'])
+                    vbond_upg_flag = 1
+
+                if vbond['current-partition'] != self.upg_to_sw:
+                    print('%s is not on the expected version of the code' % vbond['host-name'])
+                    print('Going to check if %s is present in the available version list...' % self.upg_to_sw)
+                    if self.upg_to_sw in vbond['availableVersions']:
+                        print("%s is present in the available version list for %s" % (self.upg_to_sw, vbond['host-name']))
+                        print("Proceeding to activate %s on the vBond %s" % (self.upg_to_sw, vbond['host-name']))
+                        self.Software_Activation(login_url,jsessionid,token)
+                    else:
+                        print(
+                            "%s is not present in the available version list for %s" % (self.upg_to_sw, vbond['host-name']))
+                        print("Need to install the software on the vBond %s" % vbond['host-name'])
+
+
+            print ("Working on the vSmarts now")
+            vsmart_upg_flag = 0
             all_vsmart_cur_ver_flag = 0
+
             for vsmart in vsmarts:
                 if vsmart['current-partition'] == self.upg_to_sw:
                     print ('%s is already on the expected version of the code' % vsmart['host-name'])
@@ -111,39 +167,6 @@ class Vmanage(object):
                         print ("%s is not present in the available version list for %s" % (self.upg_to_sw,vsmart['host-name']))
                         print ("Need to install the software on the vSmart %s" % vsmart['host-name'])
 
-            all_vbond_cur_ver_flag = 0
-            for vbond in vbonds:
-                if vbond['current-partition'] == self.upg_to_sw:
-                    print ('%s is already on the expected version of the code' % vbond['host-name'])
-                    vbond_upg_flag = vbond_upg_flag + 1
-                    all_vbond_cur_ver_flag = all_vbond_cur_ver_flag + 1
-                elif vbond['current-partition'] != self.upg_to_sw:
-                    print ('%s is not on the expected version of the code' %vbond['host-name'])
-                    print ('Going to check if %s is present in the available version list...' %self.upg_to_sw)
-                    if self.upg_to_sw in vbond['availableVersions']:
-                        print ("%s is present in the available version list for %s" %(self.upg_to_sw,vbond['host-name']))
-                        print ("Need to only activate %s on the vBond %s" %(self.upg_to_sw,vbond['host-name']))
-                    else:
-                        print("%s is not present in the available version list for %s" % (self.upg_to_sw, vbond['host-name']))
-                        print("Need to install the software on the vBond %s" % vbond['host-name'])
-
-
-            if all_vsmart_cur_ver_flag == len(vsmarts):
-                print ("All the vSmarts are on the expected version of the code.")
-            if all_vbond_cur_ver_flag == len(vbonds):
-                print ("All the vBonds are on the expected version of the code.")
-
-        if vmanage_upg_flag == 1:
-                print ("All the controllers are the expected version of the code. Exiting now..Good Bye!!")
-                sys.exit()
-
-
-        elif self.upg_to_sw in avail_ver_vmanage:
-            print("Software is already installed on the box..Proceeding with Activation of the software")
-            self.Software_Activation(login_url, jsessionid, token)
-        else:
-            print("Software is not present on the box..Starting Install")
-            self.Software_Upgrade(login_url, jsessionid, token)
 
     def Software_Upgrade(self,login_url,jsessionid,token):
         
@@ -175,7 +198,8 @@ class Vmanage(object):
         print (sw_install.status_code)
         #time.sleep(10)
         if sw_install.status_code == 200:
-            self.SW_INSTALL_MONITOR(login_url,jsessionid,token)
+            print ("Software Installation task has started!")
+            return True
 
     def SW_INSTALL_MONITOR(self,login_url,jsessionid,token):
         print ("Software installation progress monitor...")
@@ -201,7 +225,7 @@ class Vmanage(object):
             if sw_ins_task_status['data'][0]['status'] == 'Success':
                 sw_install_status = True
                 print ("Software has been successfully installed...Proceeding with Activation of the software")
-                self.Software_Activation(login_url,jsessionid,token)
+                return sw_install_status
             elif sw_ins_task_status['data'][0]['status'] == "Failure":
                 print ("Software Installation has Failed")
                 sys.exit()
@@ -210,6 +234,8 @@ class Vmanage(object):
     def Software_Activation(self,login_url,jsessionid,token):
         headers={'Cookie':jsessionid}
         post_header = {'Cookie':jsessionid,'X-XSRF-TOKEN': token}
+
+
         sw_act_url = login_url + "dataservice/device/action/changepartition"
         sw_act_device_data_str = """{"action":"changepartition","devices":[{"version":"20.3.3","deviceIP":"5.1.1.1","deviceId":"6b1affd0-a61a-4a7b-8c55-36f443cae839"}],"deviceType":"controller"}"""
         sw_act_device_data = json.loads(sw_act_device_data_str)
@@ -222,8 +248,10 @@ class Vmanage(object):
                 print (message)
                 status_message = message
                 time.sleep(1)
-            self.vManage_SW_Activation_Mon(login_url,jsessionid,token)
+            return True
 
+        else:
+            return False
     def vManage_SW_Activation_Mon(self,login_url,jsessionid,token):
         headers = {'Cookie': jsessionid}
         print ("vManage Software Activation Monitor")
@@ -237,6 +265,7 @@ class Vmanage(object):
                 curr_ver = list_inst_sw_data["data"][0]['current-partition']
                 if curr_ver == self.upg_to_sw:
                     print ("Required Software is already installed..Bye")
+                    return True
                     sys.exit()
             else:
                 is_vManage_GUI_UP = False
