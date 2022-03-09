@@ -2,7 +2,7 @@ import requests
 #import json
 import time
 
-vmanage_ip = input("Enter the vmanage ip: ")
+#vmanage_ip = input("Enter the vmanage ip: ")
 vmanage_username = input("Enter the vmanage username: ")
 vmanage_password = input("Enter the vManage password: ")
 
