@@ -102,8 +102,8 @@ class Vmanage(object):
                 print("Software is already installed on the vManage..Proceeding with Activation of the software")
                 device_det_url = login_url + "/dataservice"
                 get_device_det = requests.get(device_det_url,headers=headers,verify=False)
-                print (device_det)
                 device_det = get_device_det.json()
+                print (device_det)
 
                 sw_activate_task_started = self.Software_Activation(login_url, jsessionid, token)
                 if sw_activate_task_started == True:

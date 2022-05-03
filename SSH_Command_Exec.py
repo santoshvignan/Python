@@ -12,7 +12,6 @@ import argparse
 #7. Get output of "show internal ttm database".
 #8. Get output of "tools internal fp-dump options '-E'" 3 times.
 
-
 def DeviceDataCollection(hosts,username,password):
     for host in hosts.split(","):
         today = date.today()
