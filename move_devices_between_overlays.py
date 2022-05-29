@@ -80,10 +80,10 @@ device.send("\n")
 random_data = device.recv(10000)
 
 device.send("show certificate serial \n")
-time.sleep(2)
+time.sleep(5)
 device_cert_info = device.recv(10000)
 
-#print (device_cert_info.decode('utf-8'))
+print (device_cert_info.decode('utf-8'))
 
 device_serial_number = device_cert_info.decode('utf-8').split("Board")[1].split("number:")[1].split("\r")[0].strip()
 #print (device_serial_number)
