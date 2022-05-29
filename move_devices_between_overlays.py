@@ -13,22 +13,24 @@
 
 import requests
 import paramiko
-#import netmiko
 import time
 import json
 import subprocess
+import sys
+requests.packages.urllib3.disable_warnings()
 
 
-old_vmanage_ip = input("Please enter the old vManage IP")
-new_vmanage_ip = input("Enter the new vManage IP")
-vmanage_username = input ("Please enter the vManage username")
-vmanage_password = input ("Please enter the vManage password")
+old_vmanage_ip = input("Please enter the old vManage IP: ")
+new_vmanage_ip = input("Enter the new vManage IP: ")
+vmanage_username = input ("Please enter the vManage username: ")
+vmanage_password = input ("Please enter the vManage password: ")
 device_mgmt_ip = input("Enter the Management IP for the vEdge: ")
 device_username = input ("Enter the device username: ")
 device_password = input ("Enter the device password: ")
-new_org_name = input("Enter the new org-name")
-new_vbond_ip = input("Enter the new vBond information")
+new_org_name = input("Enter the new org-name: ")
+new_vbond_ip = input("Enter the new vBond information: ")
 new_sp_org_name = new_org_name
+new_org_root_cert = input("Enter the name of the new root cert which needs to be installed: ")
 
 
 #Logging into the device and get the old device information
@@ -81,9 +83,13 @@ device.send("show certificate serial \n")
 time.sleep(2)
 device_cert_info = device.recv(10000)
 
-device_serial_number = device_cert_info.decode('utf-8').split("serial")[2].split("\n")[0].strip().split(":")[1].strip()
-device_chassis_number =  device_cert_info.decode('utf-8').split("serial")[1].strip().split(":")[1].strip()
+#print (device_cert_info.decode('utf-8'))
 
+device_serial_number = device_cert_info.decode('utf-8').split("Board")[1].split("number:")[1].split("\r")[0].strip()
+#print (device_serial_number)
+
+device_chassis_number =  device_cert_info.decode('utf-8').split("Board")[0].split("number:")[1].strip()
+#print (device_chassis_number)
 
 print ("The vEdge's old system information is:\nSystem-ip -> %s\nOrganization-name -> %s\nSp-Organizatio-Name -> %s\n"
        "vBond Information -> %s\nDevice-Model -> %s\nChassis number -> %s\nCertificate Serial Number -> %s"
@@ -103,18 +109,18 @@ vmanage = requests.session()
 login = vmanage.post(url=login_to_vmanage, data=login_data, verify=False)
 
 if login.status_code == 200:
-    print("Successfully logged into vManage..Now, let's get the Cookie")
+    #print("Successfully logged into vManage..Now, let's get the Cookie")
     cookies = login.headers["Set-Cookie"]
-    print("First Cookie: " + cookies.split(";")[0])
+    #print("First Cookie: " + cookies.split(";")[0])
     jsessionid = cookies.split(";")[0]
 
     headers = {'Cookie': jsessionid}
     vmanage_cookie_url = login_url + "dataservice/client/token"
-    print(vmanage_cookie_url)
+    #print(vmanage_cookie_url)
 
     get_vmanage_cookie = requests.get(vmanage_cookie_url, headers=headers, verify=False)
     token = get_vmanage_cookie.text
-    print("X-XSRF-Token: " + token)
+    #print("X-XSRF-Token: " + token)
 
 devicelist_url = login_url + "dataservice/certificate/vedge/list"
 
@@ -154,6 +160,8 @@ for device in devicelist_data_json["data"]:
 
 if device_present == False:
     print ("The new overlay does not have the vEdge in its vEdge list. Please upload the vEdge serial to the vManage \n")
+    sys.exit()
+
 
 #Logging into old vManage and moving the device to invalid state
 
@@ -167,18 +175,18 @@ old_vmanage = requests.session()
 login = vmanage.post(url=login_to_vmanage, data=login_data, verify=False)
 
 if login.status_code == 200:
-    print("Successfully logged into vManage..Now, let's get the Cookie")
+    #print("Successfully logged into vManage..Now, let's get the Cookie")
     cookies = login.headers["Set-Cookie"]
-    print("First Cookie: " + cookies.split(";")[0])
+    #print("First Cookie: " + cookies.split(";")[0])
     old_vmanage_jsessionid = cookies.split(";")[0]
 
     headers = {'Cookie': jsessionid}
     vmanage_cookie_url = login_url + "dataservice/client/token"
-    print(vmanage_cookie_url)
+    #print(vmanage_cookie_url)
 
     get_vmanage_cookie = requests.get(vmanage_cookie_url, headers=headers, verify=False)
     old_vmanage_token = get_vmanage_cookie.text
-    print("X-XSRF-Token: " + old_vmanage_token)
+    #print("X-XSRF-Token: " + old_vmanage_token)
 
 print ("Moving the device to invalid state...")
 move_device_to_invalid_state_url = old_vmanage_login_url + "dataservice/certificate/save/vedge/list"
@@ -187,10 +195,10 @@ device_data_dict = {}
 device_data_dict['chasisNumber']=device_chassis_number
 device_data_dict["serialNumber"]=device_serial_number
 device_data_dict["validity"]="invalid"
-print (device_data_dict)
+#print (device_data_dict)
 
 device_data_json = json.dumps(device_data_dict)
-print (device_data_json)
+#print (device_data_json)
 
 move_device_to_invalid_state = requests.post(move_device_to_invalid_state_url,json=device_data_json,headers=post_header,verify=False)
 if move_device_to_invalid_state.status_code == 200:
@@ -217,17 +225,20 @@ device.send("sp-organization-name %s \n" %new_sp_org_name)
 device.send("vbond %s \n" %new_vbond_ip)
 device.send("\n")
 device.send("commit and-quit \n")
-time.sleep(2)
+time.sleep(10)
+device_config_commit = device.recv(100000)
+
 
 device.send("show run system | nomore \n")
 time.sleep(2)
-device_system_info = device.recv(10000)
 
-
+device_system_info = device.recv(100000)
+#print (device_system_info.decode('utf-8'))
 for i in device_system_info.decode('utf-8').split("\n"):
     if (i.lstrip()).startswith("organization-name"):
         device_new_org_name = i.split()[1]
-        device_new_sp_org_name = device_old_org_name
+    if (i.lstrip()).startswith("sp-organization-name"):
+        device_new_sp_org_name = i.split()[1]
     if (i.lstrip()).startswith("vbond"):
         device_new_vbond_ip = i.split()[1]
 
@@ -236,7 +247,63 @@ if device_new_org_name == new_org_name and device_new_sp_org_name == new_sp_org_
 
 else:
     print ("There was an error configuring the device. Please check the device and configure it")
-
+    sys.exit()
 
 #Install the new root-cert-chain on the device
+
+device.send("request root-cert-chain install vpn 512 scp://vignan@29.29.29.3:/home/vignan/rootcerts/%s \n" %new_org_root_cert)
+time.sleep(10)
+device.send("MANSANvig2908\n")
+
+device.send("show certificate root-ca-cert | inc Issuer | inc %s" %new_org_name)
+time.sleep(2)
+device_root_cert_info = device.recv(100000)
+print (device_root_cert_info.decode('utf-8'))
+
+if new_org_name in device_root_cert_info.decode('utf-8'):
+    print ("New root chain has been successfully installed")
+else:
+    print ("New root chain is not installed")
+    sys.exit()
+
+#Do an API check from the new vManage as well to check if the device has synced with the new vManage.
+login_url = "https://%s:8443/" % new_vmanage_ip
+login_action = "j_security_check"
+login_data = {'j_username': vmanage_username, 'j_password': vmanage_password}
+
+login_to_vmanage = login_url + login_action
+
+vmanage = requests.session()
+login = vmanage.post(url=login_to_vmanage, data=login_data, verify=False)
+
+if login.status_code == 200:
+    #print("Successfully logged into vManage..Now, let's get the Cookie")
+    cookies = login.headers["Set-Cookie"]
+    #print("First Cookie: " + cookies.split(";")[0])
+    jsessionid = cookies.split(";")[0]
+
+    headers = {'Cookie': jsessionid}
+    vmanage_cookie_url = login_url + "dataservice/client/token"
+    #print(vmanage_cookie_url)
+
+    get_vmanage_cookie = requests.get(vmanage_cookie_url, headers=headers, verify=False)
+    token = get_vmanage_cookie.text
+    #print("X-XSRF-Token: " + token)
+
+devicemonitor_url = login_url + "dataservice/device"
+device_reachable = False
+i = 1
+while (i <= 30 and device_reachable == False):
+    print ("%s/30 Checking Device reachability with vManage" %str(i))
+    device_data = requests.get(devicemonitor_url,headers=headers,verify=False)
+    device_data_json = device_data.json()
+    #print (device_data_json)
+    for device in device_data_json["data"]:
+        if (device["uuid"] == device_chassis_number) and (device["system-ip"]==device_system_ip) and (device["reachability"] == "reachable"):
+            print ("Device is online with vManage")
+            device_reachable = True
+    i = i+1
+    time.sleep(10)
+
+
 
