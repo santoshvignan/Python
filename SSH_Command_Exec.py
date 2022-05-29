@@ -2,6 +2,7 @@ import paramiko
 import time
 from datetime import datetime,date
 import argparse
+import base64
 
 #1. Log into the vEdge.
 #2. Get output of "show system statistics | nomore" 3 times.
@@ -12,10 +13,10 @@ import argparse
 #7. Get output of "show internal ttm database".
 #8. Get output of "tools internal fp-dump options '-E'" 3 times.
 
-def DeviceDataCollection(hosts,username,password):
+def DeviceDataCollection(hosts,username,password,directory):
     for host in hosts.split(","):
         today = date.today()
-        file_path = "/home/vignan/"
+        file_path = directory
         filename = file_path + "logs_" + host + "_" + str(today) +".txt" 
 
         current_time = datetime.now()
@@ -46,7 +47,7 @@ def DeviceDataCollection(hosts,username,password):
         time.sleep(5)
         
         #2. Get output of "show system statistics | nomore" 3 times
-        for i in range(0,3):
+        for i in range(0,2):
             log.writelines("###################### Iteration %s ########################" %str(i))
             ve_cmd.send("show system statistics | nomore \n")
             time.sleep(5)
@@ -63,7 +64,7 @@ def DeviceDataCollection(hosts,username,password):
         log.writelines(ve_recv.decode('cp437'))
 
         #4. Get output of "show tunnel statistics bfd | nomore" 2 times.
-        for i in range(0,3):
+        for i in range(0,2):
             log.writelines("#################### Iteration %s #######################" %i)
             ve_cmd.send("show tunnel statistics bfd| tab | nomore \n")
             time.sleep(5)
@@ -72,7 +73,7 @@ def DeviceDataCollection(hosts,username,password):
             log.writelines(ve_recv.decode('cp437'))
 
         #5. Get output of "show tunnel statistics ipsec | nomore" 2 times.
-        for i in range(0,3):
+        for i in range(0,2):
             log.writelines("#################### Iteration %s #######################" %i)
             ve_cmd.send("show tunnel statistics ipsec | tab | nomore \n")
             time.sleep(5)
@@ -88,8 +89,14 @@ def DeviceDataCollection(hosts,username,password):
         print (ve_recv.decode('cp437'))
         log.writelines(ve_recv.decode('cp437'))
 
+        ve_cmd.send("show ip route | nomore \n")
+        time.sleep(5)
+        ve_recv = ve_cmd.recv(nbytes=100000)
+        print (ve_recv.decode('cp437'))
+        log.writelines(ve_recv.decode('cp437'))
+
         ve_cmd.send("unhide viptela_internal \n")
-        ve_cmd.send("5mok!ngk!ll$\n")
+        ve_cmd.send(base64.b64decode(b'NW1vayFuZ2shbGwk').decode("utf-8")+"\n")
         #7. Get output of "show internal ttm database"
         ve_cmd.send("show internal ttm database | nomore \n")
         time.sleep(5)
@@ -100,7 +107,7 @@ def DeviceDataCollection(hosts,username,password):
         log.writelines(ve_recv.decode('cp437'))
 
         #8. Get output of "tools internal fp-dump options '-E'" 3 times.
-        for i in range(0,3):
+        for i in range(0,2):
             log.writelines("#################### Iteration %s #######################" %i)
             ve_cmd.send('tools internal fp-dump options "-E" | nomore \n')
             time.sleep(5)
@@ -116,11 +123,13 @@ def DeviceDataCollection(hosts,username,password):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(usage="python3 SSH_Command_Exec.py --ip 1.2.3.4,5.6.7.8 -u admin -p password")
+    parser = argparse.ArgumentParser(usage="python3 SSH_Command_Exec.py --ip 1.2.3.4,5.6.7.8 -u admin -p password --dir '/home/vignan/'")
     parser.add_argument("--ip",required=True,help="--ip <IP addresses of devices separated by comma>")
     parser.add_argument("--u",required=True,help="--u <username>")
     parser.add_argument("--p",required=True,help="--p <password>")
+    parser.add_argument("--dir",required=True,help="--dir <log directory>")
     hosts = parser.parse_args().ip
     username = parser.parse_args().u
     password = parser.parse_args().p
-    DeviceDataCollection(hosts,username,password)
+    directory = parser.parse_args().dir
+    DeviceDataCollection(hosts,username,password,directory)
