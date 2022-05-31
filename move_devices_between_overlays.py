@@ -152,7 +152,7 @@ def connect_to_vmanage(has_device_been_invalidated_in_old_overlay,vmanage_ip,vma
         device_data_json = json.dumps(device_data_dict)
         print (device_data_json)
 
-        move_device_to_invalid_state = requests.post(move_device_to_invalid_state_url,data=device_data_json,headers=post_header,verify=False)
+        move_device_to_invalid_state = requests.post(move_device_to_invalid_state_url,json=device_data_json,headers=post_header,verify=False)
         print (move_device_to_invalid_state.status_code)
         if move_device_to_invalid_state.status_code == 200:
             send_to_controllers_url = login_url + "dataservice/certificate/vedge/list?action=push"
