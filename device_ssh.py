@@ -16,30 +16,31 @@ def connect_to_device(device_ip,device_username,device_password):
         print (f"Unable to login to {device_ip}. Please use a different username/password")
         return False
     
-def collect_show_command_outputs(device,device_username,device_password,device_commands):
-   
-    device_shell = connect_to_device(device.strip(),device_username,device_password)
-    if (device_shell):
-        current_date_time = date.today()
-        #print (current_date_time)
-        device_log_name = device.strip()+"_"+str(current_date_time)+".txt"
-        device_log = open(device_log_name,"w")
-        device_log.writelines(str(datetime.now())+"\n")
-        device_shell.send("paginate false\n")
-        time.sleep(2)
-        for command in device_commands:
-            device_shell.send(command.strip() + "\n")
-            time.sleep(20)
-            print (device_shell.recv_ready())
-            device_recv_data = device_shell.recv(10000000)
-            print (device_recv_data.decode('utf-8'))
-            device_log.writelines(device_recv_data.decode('utf-8'))
-      
-    else:
-        return False
-    
-    device_log.close()
-    return device_log_name
+def collect_show_command_outputs(device_list,device_username,device_password):
+    for device in device_list:
+        device_shell = connect_to_device(device.strip(),device_username,device_password)
+        if (device_shell):
+            current_date_time = date.today()
+            #print (current_date_time)
+            device_log_name = device.strip()+"_"+str(current_date_time)+".txt"
+            device_log = open(device_log_name,"w")
+            device_log.writelines(str(datetime.now())+"\n")
+            device_shell.send("paginate false\n")
+            time.sleep(2)
+            device_command_read = open("command_list","r")
+            device_commands = device_command_read.readlines()
+            for command in device_commands:
+                device_shell.send(command.strip() + "\n")
+                time.sleep(20)
+                device_recv_data = device_shell.recv(10000000)
+                print (device_recv_data.decode('utf-8'))
+                device_log.writelines(device_recv_data.decode('utf-8'))
+        
+        else:
+            print (f"Could not connect to {device.strip()}")
+        
+        device_log.close()
+        return device_log_name
 
 def main():
     #global device_username,device_password
