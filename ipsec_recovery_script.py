@@ -59,7 +59,7 @@ for host in hosts:
     rx_window_stats ={"rx_window_drops_0":[],"rx_window_drops_1":[],"rx_window_drops_2":[],"rx_window_drops_3":[],"rx_window_drops_4":[],"rx_window_drops_5":[],"rx_window_drops_6":[],"rx_window_drops_7":[]}
     #system_stats = []
     for i in range(0,3):
-        log.writelines("*****************Iteration_" + str(i) + "********************")
+        log.writelines("*****************Iteration_" + str(i) + "********************\n")
         ve_cmd.send("show system statistics | nomore | inc rx_window_drops \n")
         time.sleep(5)
         ve_recv = ve_cmd.recv(10000)
@@ -72,52 +72,43 @@ for host in hosts:
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_0"].append(window_drops.strip().split(":")[1].strip())
-        
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+                
             if "rx_window_drops_tc1" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_1"].append(window_drops.strip().split(":")[1].strip())
 
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
             if "rx_window_drops_tc2" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_2"].append(window_drops.strip().split(":")[1].strip())
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+
             if "rx_window_drops_tc3" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_3"].append(window_drops.strip().split(":")[1].strip())
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+ 
             if "rx_window_drops_tc4" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_4"].append(window_drops.strip().split(":")[1].strip())
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+
             if "rx_window_drops_tc5" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_5"].append(window_drops.strip().split(":")[1].strip())
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+
             if "rx_window_drops_tc6" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
                 #system_stats.append(window_drops.strip().split(":")[1].strip())
                 rx_window_stats["rx_window_drops_6"].append(window_drops.strip().split(":")[1].strip())
-        for window_drops in ve_recv.decode('utf-8').split("\n"):
-            #print (window_drops.strip())
+            
             if "rx_window_drops_tc7" in window_drops.strip():
                 #print (window_drops.strip())
                 #log.writelines(window_drops.strip() + "\n")
