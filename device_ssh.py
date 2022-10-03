@@ -16,7 +16,7 @@ def connect_to_device(device_ip,device_username,device_password):
         print (f"Unable to login to {device_ip}. Please use a different username/password")
         return False
     
-def collect_show_command_outputs(device_list,device_username,device_password):
+def run_commands(device_list,device_username,device_password,time_to_sleep_bw_commands):
     for device in device_list:
         device_shell = connect_to_device(device.strip(),device_username,device_password)
         if (device_shell):
@@ -31,7 +31,7 @@ def collect_show_command_outputs(device_list,device_username,device_password):
             device_commands = device_command_read.readlines()
             for command in device_commands:
                 device_shell.send(command.strip() + "\n")
-                time.sleep(20)
+                time.sleep(time_to_sleep_bw_commands)
                 device_recv_data = device_shell.recv(10000000)
                 print (device_recv_data.decode('utf-8'))
                 device_log.writelines(device_recv_data.decode('utf-8'))
@@ -46,10 +46,11 @@ def main():
     #global device_username,device_password
     device_username = input("Enter the username: ")
     device_password = input("Enter the password: ")
+    time_to_sleep_bw_commands = input("Enter the time to sleep between commands")
     device_list_read = open("device_list","r")
     device_list = device_list_read.readlines()
-    print (f"The commands are going to be collected from the following devices: {device_list}")
-    collect_show_command_outputs(device_list,device_username,device_password)
+    print (f"The commands are going to be run on the following devices: {device_list}")
+    run_commands(device_list,device_username,device_password,time_to_sleep_bw_commands)
 
 if __name__ == "__main__":
     main()
